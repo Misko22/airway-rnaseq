@@ -34,6 +34,9 @@ nrow(dds)
 
 # Run the differential expression test
 dds <- DESeq(dds)
+# Save fitted DESeq2 object for downstream analyses
+saveRDS(dds, "deseq_model.rds")
+
 res <- results(dds)
 summary(res)
 

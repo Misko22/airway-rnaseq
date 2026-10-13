@@ -5,7 +5,7 @@ library(DESeq2)
 library(org.Hs.eg.db)
 library(AnnotationDbi)
 library(ggplot2)
-
+dds <- readRDS("deseq_model.rds")
 # --------------------------------------------------
 # 1. Load DESeq2 results
 # --------------------------------------------------
@@ -31,13 +31,37 @@ sig_res <- res_df[
 # 3. Rank genes by log2 fold change
 # --------------------------------------------------
 
+# Keep only positive changes, then sort largest first
 top_up <- sig_res[
-  order(sig_res$log2FoldChange, decreasing = TRUE),
+  !is.na(sig_res$log2FoldChange) &
+    sig_res$log2FoldChange > 0,
 ]
 
-top_down <- sig_res[
-  order(sig_res$log2FoldChange),
+top_up <- top_up[
+  order(top_up$log2FoldChange, decreasing = TRUE),
 ]
+
+
+# Keep only negative changes, then sort most negative first
+top_down <- sig_res[
+  !is.na(sig_res$log2FoldChange) &
+    sig_res$log2FoldChange < 0,
+]
+
+top_down <- top_down[
+  order(top_down$log2FoldChange),
+]
+
+
+# Check the number of genes and their directions
+data.frame(
+  group = c("Upregulated", "Downregulated"),
+  genes = c(nrow(top_up), nrow(top_down)),
+  correct_direction = c(
+    all(top_up$log2FoldChange > 0),
+    all(top_down$log2FoldChange < 0)
+  )
+)
 
 
 # --------------------------------------------------
@@ -109,7 +133,8 @@ ggplot(
 # 6. Volcano plot
 # --------------------------------------------------
 
-volcano_df <- res_df
+# For this plot, keep genes with an available adjusted p-value
+volcano_df <- res_df[!is.na(res_df$padj), ]
 
 volcano_df$significance <- "Not significant"
 
